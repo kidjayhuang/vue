@@ -2,7 +2,9 @@ import { inBrowser } from './env'
 
 export let mark
 export let measure
-
+/**
+ * 性能监听方法
+ */
 if (__DEV__) {
   const perf = inBrowser && window.performance
   /* istanbul ignore if */

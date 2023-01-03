@@ -81,6 +81,7 @@ export default class Watcher implements DepTarget {
         ? vm._scope
         : undefined
     )
+    /*_watchers存放订阅者实例*/
     if ((this.vm = vm) && isRenderWatcher) {
       vm._watcher = this
     }
@@ -109,6 +110,7 @@ export default class Watcher implements DepTarget {
     this.newDepIds = new Set()
     this.expression = __DEV__ ? expOrFn.toString() : ''
     // parse expression for getter
+    /*把表达式expOrFn解析成getter*/
     if (isFunction(expOrFn)) {
       this.getter = expOrFn
     } else {
@@ -130,13 +132,23 @@ export default class Watcher implements DepTarget {
   /**
    * Evaluate the getter, and re-collect dependencies.
    */
+  /*获得getter的值并且重新进行依赖收集*/
   get() {
+    /*将自身watcher观察者实例设置给Dep.target，用以依赖收集。*/
     pushTarget(this)
     let value
     const vm = this.vm
     try {
       value = this.getter.call(vm, vm)
     } catch (e: any) {
+      /*
+      执行了getter操作，看似执行了渲染操作，其实是执行了依赖收集。
+      在将Dep.target设置为自身观察者实例以后，执行getter操作。
+      譬如说现在的的data中可能有a、b、c三个数据，getter渲染需要依赖a跟c，
+      那么在执行getter的时候就会触发a跟c两个数据的getter函数，
+      在getter函数中即可判断Dep.target是否存在然后完成依赖收集，
+      将该观察者对象放入闭包中的Dep的subs中去。
+    */
       if (this.user) {
         handleError(e, vm, `getter for watcher "${this.expression}"`)
       } else {
@@ -145,9 +157,12 @@ export default class Watcher implements DepTarget {
     } finally {
       // "touch" every property so they are all tracked as
       // dependencies for deep watching
+      /*如果存在deep，则触发每个深层对象的依赖，追踪其变化*/
       if (this.deep) {
+        /*递归每一个对象或者数组，触发它们的getter，使得对象或数组的每一个成员都被依赖收集，形成一个“深（deep）”依赖关系*/
         traverse(value)
       }
+      /*将观察者实例从target栈中取出并设置给Dep.target*/
       popTarget()
       this.cleanupDeps()
     }
@@ -157,6 +172,7 @@ export default class Watcher implements DepTarget {
   /**
    * Add a dependency to this directive.
    */
+  /*添加一个依赖关系到Deps集合中*/
   addDep(dep: Dep) {
     const id = dep.id
     if (!this.newDepIds.has(id)) {
@@ -171,7 +187,9 @@ export default class Watcher implements DepTarget {
   /**
    * Clean up for dependency collection.
    */
+  /*清理依赖收集*/
   cleanupDeps() {
+    /*移除所有观察者对象*/
     let i = this.deps.length
     while (i--) {
       const dep = this.deps[i]
@@ -193,13 +211,18 @@ export default class Watcher implements DepTarget {
    * Subscriber interface.
    * Will be called when a dependency changes.
    */
+  /*
+    调度者接口，当依赖发生改变的时候进行回调。
+   */
   update() {
     /* istanbul ignore else */
     if (this.lazy) {
       this.dirty = true
     } else if (this.sync) {
+      /*同步则执行run直接渲染视图*/
       this.run()
     } else {
+      /*异步推送到观察者队列中，下一个tick时调用。*/
       queueWatcher(this)
     }
   }
@@ -208,6 +231,9 @@ export default class Watcher implements DepTarget {
    * Scheduler job interface.
    * Will be called by the scheduler.
    */
+  /*
+    调度者工作接口，将被调度者回调。
+  */
   run() {
     if (this.active) {
       const value = this.get()
@@ -216,12 +242,17 @@ export default class Watcher implements DepTarget {
         // Deep watchers and watchers on Object/Arrays should fire even
         // when the value is the same, because the value may
         // have mutated.
+        /*
+          即便值相同，拥有Deep属性的观察者以及在对象／数组上的观察者应该被触发更新，因为它们的值可能发生改变。
+        */
         isObject(value) ||
         this.deep
       ) {
         // set new value
         const oldValue = this.value
+        /*设置新的值*/
         this.value = value
+        /*触发回调渲染视图*/
         if (this.user) {
           const info = `callback for watcher "${this.expression}"`
           invokeWithErrorHandling(
@@ -242,6 +273,7 @@ export default class Watcher implements DepTarget {
    * Evaluate the value of the watcher.
    * This only gets called for lazy watchers.
    */
+  /*获取观察者的值*/
   evaluate() {
     this.value = this.get()
     this.dirty = false
@@ -250,6 +282,7 @@ export default class Watcher implements DepTarget {
   /**
    * Depend on all deps collected by this watcher.
    */
+  /*收集该watcher的所有deps依赖*/
   depend() {
     let i = this.deps.length
     while (i--) {
@@ -260,7 +293,9 @@ export default class Watcher implements DepTarget {
   /**
    * Remove self from all dependencies' subscriber list.
    */
+  /*将自身从所有依赖收集订阅列表删除*/
   teardown() {
+    /*从vm实例的观察者列表中将自身移除，由于该操作比较耗费资源，所以如果vm实例正在被销毁则跳过该步骤。*/
     if (this.vm && !this.vm._isBeingDestroyed) {
       remove(this.vm._scope.effects, this)
     }

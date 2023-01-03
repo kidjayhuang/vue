@@ -48,27 +48,31 @@ export function proxy(target: Object, sourceKey: string, key: string) {
   }
   Object.defineProperty(target, key, sharedPropertyDefinition)
 }
-
+/*初始化props、methods、data、computed与watch*/
 export function initState(vm: Component) {
   const opts = vm.$options
+  /*初始化props*/
   if (opts.props) initProps(vm, opts.props)
 
   // Composition API
   initSetup(vm)
-
+  /*初始化方法*/
   if (opts.methods) initMethods(vm, opts.methods)
+  /*初始化data*/
   if (opts.data) {
     initData(vm)
   } else {
+    /*该组件没有data的时候绑定一个空对象*/
     const ob = observe((vm._data = {}))
     ob && ob.vmCount++
   }
+  /*初始化computed*/
   if (opts.computed) initComputed(vm, opts.computed)
+  /*初始化watchers*/
   if (opts.watch && opts.watch !== nativeWatch) {
     initWatch(vm, opts.watch)
   }
 }
-
 function initProps(vm: Component, propsOptions: Object) {
   const propsData = vm.$options.propsData || {}
   const props = (vm._props = shallowReactive({}))
@@ -120,8 +124,10 @@ function initProps(vm: Component, propsOptions: Object) {
 }
 
 function initData(vm: Component) {
+  /*得到data数据*/
   let data: any = vm.$options.data
   data = vm._data = isFunction(data) ? getData(data, vm) : data || {}
+  /*判断是否是对象*/
   if (!isPlainObject(data)) {
     data = {}
     __DEV__ &&
@@ -132,17 +138,21 @@ function initData(vm: Component) {
       )
   }
   // proxy data on instance
+  /*遍历data对象*/
   const keys = Object.keys(data)
   const props = vm.$options.props
   const methods = vm.$options.methods
   let i = keys.length
+  //遍历data中的数据
   while (i--) {
     const key = keys[i]
+    /*保证data中的key不与methods中的key重复，props优先，如果有冲突会产生warning*/
     if (__DEV__) {
       if (methods && hasOwn(methods, key)) {
         warn(`Method "${key}" has already been defined as a data property.`, vm)
       }
     }
+    /*保证data中的key不与props中的key重复，props优先，如果有冲突会产生warning*/
     if (props && hasOwn(props, key)) {
       __DEV__ &&
         warn(
@@ -151,10 +161,14 @@ function initData(vm: Component) {
           vm
         )
     } else if (!isReserved(key)) {
+      /*判断是否是保留字段*/
+
+      /*将data上面的属性代理到了vm实例上*/
       proxy(vm, `_data`, key)
     }
   }
   // observe data
+  /*从这里开始我们要observe了，开始对数据进行绑定，这里有尤大大的注释asRootData，这步作为根数据，下面会进行递归observe进行对深层对象的绑定。*/
   const ob = observe(data)
   ob && ob.vmCount++
 }

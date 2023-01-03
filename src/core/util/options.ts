@@ -24,6 +24,10 @@ import type { ComponentOptions } from 'types/options'
  * how to merge a parent option value and a child option
  * value into the final value.
  */
+/*
+  这个strats的作用就是，当要合并两个option（比如父组件的option与子组件的option）合并的时候，
+  这里写了如何合并两个数据（或者function等）得到最终结果的方法
+ */
 const strats = config.optionMergeStrategies
 
 /**
@@ -290,6 +294,7 @@ const defaultStrat = function (parentVal: any, childVal: any): any {
 /**
  * Validate component names
  */
+/*检查是否是有效的组件名*/
 function checkComponents(options: Record<string, any>) {
   for (const key in options.components) {
     validateComponentName(key)
@@ -320,6 +325,7 @@ export function validateComponentName(name: string) {
  * Ensure all props option syntax are normalized into the
  * Object-based format.
  */
+/*确保所有props option序列化成正确的格式*/
 function normalizeProps(options: Record<string, any>, vm?: Component | null) {
   const props = options.props
   if (!props) return
@@ -330,6 +336,7 @@ function normalizeProps(options: Record<string, any>, vm?: Component | null) {
     while (i--) {
       val = props[i]
       if (typeof val === 'string') {
+        /*将原本用-连接的字符串变成驼峰 aaa-bbb-ccc => aaaBbbCcc*/
         name = camelize(val)
         res[name] = { type: null }
       } else if (__DEV__) {
@@ -382,6 +389,7 @@ function normalizeInject(options: Record<string, any>, vm?: Component | null) {
 /**
  * Normalize raw function directives into object format.
  */
+/*将函数指令序列化后加入对象*/
 function normalizeDirectives(options: Record<string, any>) {
   const dirs = options.directives
   if (dirs) {
@@ -408,6 +416,7 @@ function assertObjectType(name: string, value: any, vm: Component | null) {
  * Merge two option objects into a new one.
  * Core utility used in both instantiation and inheritance.
  */
+/*合并两个option对象到一个新的对象中*/
 export function mergeOptions(
   parent: Record<string, any>,
   child: Record<string, any>,
@@ -430,10 +439,16 @@ export function mergeOptions(
   // but only if it is a raw options object that isn't
   // the result of another mergeOptions call.
   // Only merged options has the _base property.
+  /*
+    https://cn.vuejs.org/v2/api/#extends
+    允许声明扩展另一个组件(可以是一个简单的选项对象或构造函数),而无需使用 
+    将child的extends也加入parent扩展
+  */
   if (!child._base) {
     if (child.extends) {
       parent = mergeOptions(parent, child.extends, vm)
     }
+    /*child的mixins加入parent中*/
     if (child.mixins) {
       for (let i = 0, l = child.mixins.length; i < l; i++) {
         parent = mergeOptions(parent, child.mixins[i], vm)
@@ -446,13 +461,16 @@ export function mergeOptions(
   for (key in parent) {
     mergeField(key)
   }
+  /*合并parent与child*/
   for (key in child) {
     if (!hasOwn(parent, key)) {
       mergeField(key)
     }
   }
   function mergeField(key: any) {
+    /*strats里面存了options中每一个属性（el、props、watch等等）的合并方法，先取出*/
     const strat = strats[key] || defaultStrat
+    /*根据合并方法来合并两个option*/
     options[key] = strat(parent[key], child[key], vm, key)
   }
   return options
@@ -473,11 +491,14 @@ export function resolveAsset(
   if (typeof id !== 'string') {
     return
   }
+  /*分别用id本身、驼峰以及大写开头驼峰寻找是否存在，存在则返回，不存在则打印*/
   const assets = options[type]
   // check local registration variations first
   if (hasOwn(assets, id)) return assets[id]
+  /*转化为驼峰命名*/
   const camelizedId = camelize(id)
   if (hasOwn(assets, camelizedId)) return assets[camelizedId]
+  /*驼峰首字母大写*/
   const PascalCaseId = capitalize(camelizedId)
   if (hasOwn(assets, PascalCaseId)) return assets[PascalCaseId]
   // fallback to prototype chain

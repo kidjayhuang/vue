@@ -97,7 +97,7 @@ const componentVNodeHooks = {
 }
 
 const hooksToMerge = Object.keys(componentVNodeHooks)
-
+/* 创建一个组件节点 */
 export function createComponent(
   Ctor: typeof Component | Function | ComponentOptions | void,
   data: VNodeData | undefined,
@@ -118,6 +118,7 @@ export function createComponent(
 
   // if at this stage it's not a constructor or an async component factory,
   // reject.
+  /*如果在该阶段Ctor依然不是一个构造函数或者是一个异步组件工厂则直接返回*/
   if (typeof Ctor !== 'function') {
     if (__DEV__) {
       warn(`Invalid Component definition: ${String(Ctor)}`, context)
@@ -126,6 +127,7 @@ export function createComponent(
   }
 
   // async component
+  /*处理异步组件*/
   let asyncFactory
   // @ts-expect-error
   if (isUndef(Ctor.cid)) {
@@ -135,6 +137,7 @@ export function createComponent(
       // return a placeholder node for async component, which is rendered
       // as a comment node but preserves all the raw information for the node.
       // the information will be used for async server-rendering and hydration.
+      /*如果这是一个异步组件则会不会返回任何东西（undifiened），直接return掉，等待回调函数去触发父组件更新。s*/
       return createAsyncPlaceholder(asyncFactory, data, context, children, tag)
     }
   }

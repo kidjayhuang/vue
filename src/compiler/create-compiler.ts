@@ -5,6 +5,7 @@ import { createCompileToFunctionFn } from './to-function'
 
 export function createCompilerCreator(baseCompile: Function): Function {
   return function createCompiler(baseOptions: CompilerOptions) {
+    /*编译，将模板template编译成AST、render函数以及staticRenderFns函数*/
     function compile(
       template: string,
       options?: CompilerOptions
@@ -20,7 +21,7 @@ export function createCompilerCreator(baseCompile: Function): Function {
       ) => {
         ;(tip ? tips : errors).push(msg)
       }
-
+      /*做下面这些merge的目的因为不同平台可以提供自己本身平台的一个baseOptions，内部封装了平台自己的实现，然后把共同的部分抽离开来放在这层compiler中，所以在这里需要merge一下*/
       if (options) {
         if (__DEV__ && options.outputSourceRange) {
           // $flow-disable-line
@@ -44,6 +45,7 @@ export function createCompilerCreator(baseCompile: Function): Function {
           }
         }
         // merge custom modules
+        /*合并modules*/
         if (options.modules) {
           finalOptions.modules = (baseOptions.modules || []).concat(
             options.modules
@@ -51,6 +53,7 @@ export function createCompilerCreator(baseCompile: Function): Function {
         }
         // merge custom directives
         if (options.directives) {
+          /*合并directives*/
           finalOptions.directives = extend(
             Object.create(baseOptions.directives || null),
             options.directives
@@ -58,6 +61,7 @@ export function createCompilerCreator(baseCompile: Function): Function {
         }
         // copy other options
         for (const key in options) {
+          /*合并其余的options，modules与directives已经在上面做了特殊处理了*/
           if (key !== 'modules' && key !== 'directives') {
             finalOptions[key] = options[key as keyof CompilerOptions]
           }
@@ -65,7 +69,7 @@ export function createCompilerCreator(baseCompile: Function): Function {
       }
 
       finalOptions.warn = warn
-
+      /*基础模板编译，得到编译结果*/
       const compiled = baseCompile(template.trim(), finalOptions)
       if (__DEV__) {
         detectErrors(compiled.ast, warn)

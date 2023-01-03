@@ -1,3 +1,4 @@
+// 对 "平台 DOM" 的一些操作方法
 import VNode from 'core/vdom/vnode'
 import { namespaceMap } from 'web/util/index'
 

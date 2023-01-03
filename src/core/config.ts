@@ -5,6 +5,7 @@ import type { Component } from 'types/component'
 
 /**
  * @internal
+ * 总配置文件
  */
 export interface Config {
   // user

@@ -53,14 +53,23 @@ export class Observer {
     // this.value = value
     this.dep = mock ? mockDep : new Dep()
     this.vmCount = 0
+    /*
+    将Observer实例绑定到data的__ob__属性上面去，之前说过observe的时候会先检测是否已经有__ob__对象存放Observer实例了
+    */
     def(value, '__ob__', this)
     if (isArray(value)) {
+      /*
+          如果是数组，将修改后可以截获响应的数组方法替换掉该数组的原型中的原生方法，达到监听数组数据变化响应的效果。
+          这里如果当前浏览器支持__proto__属性，则直接覆盖当前数组对象原型上的原生数组方法，如果不支持该属性，则直接覆盖数组对象的原型。
+      */
       if (!mock) {
         if (hasProto) {
+          /*直接覆盖原型的方法来修改目标对象*/
           /* eslint-disable no-proto */
           ;(value as any).__proto__ = arrayMethods
           /* eslint-enable no-proto */
         } else {
+          /*定义（覆盖）目标对象或数组的某一个方法*/
           for (let i = 0, l = arrayKeys.length; i < l; i++) {
             const key = arrayKeys[i]
             def(value, key, arrayMethods[key])
@@ -68,6 +77,7 @@ export class Observer {
         }
       }
       if (!shallow) {
+        /*如果是数组则需要遍历数组的每一个成员进行observe*/
         this.observeArray(value)
       }
     } else {
@@ -76,6 +86,7 @@ export class Observer {
        * getter/setters. This method should only be called when
        * value type is Object.
        */
+      /*如果是对象则直接walk进行绑定*/
       const keys = Object.keys(value)
       for (let i = 0; i < keys.length; i++) {
         const key = keys[i]
@@ -88,6 +99,7 @@ export class Observer {
    * Observe a list of Array items.
    */
   observeArray(value: any[]) {
+    /*数组需要遍历每一个成员进行observe*/
     for (let i = 0, l = value.length; i < l; i++) {
       observe(value[i], false, this.mock)
     }
@@ -101,14 +113,19 @@ export class Observer {
  * returns the new observer if successfully observed,
  * or the existing observer if the value already has one.
  */
+/*
+ 尝试创建一个Observer实例（__ob__），如果成功创建Observer实例则返回新的Observer实例，如果已有Observer实例则返回现有的Observer实例。
+ */
 export function observe(
   value: any,
   shallow?: boolean,
   ssrMockReactivity?: boolean
 ): Observer | void {
+  /*这里用__ob__这个属性来判断是否已经有Observer实例，如果没有Observer实例则会新建一个Observer实例并赋值给__ob__这个属性，如果已有Observer实例则直接返回该Observer实例*/
   if (value && hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
     return value.__ob__
   }
+  /*这里的判断是为了确保value是单纯的对象，而不是函数或者是Regexp等情况。*/
   if (
     shouldObserve &&
     (ssrMockReactivity || !isServerRendering()) &&
@@ -133,13 +150,14 @@ export function defineReactive(
   shallow?: boolean,
   mock?: boolean
 ) {
+  /*在闭包中定义一个dep对象*/
   const dep = new Dep()
 
   const property = Object.getOwnPropertyDescriptor(obj, key)
   if (property && property.configurable === false) {
     return
   }
-
+  /*如果之前该对象已经预设了getter以及setter函数则将其取出来，新定义的getter/setter中会将其执行，保证不会覆盖之前已经定义的getter/setter。*/
   // cater for pre-defined getter/setters
   const getter = property && property.get
   const setter = property && property.set
@@ -149,14 +167,16 @@ export function defineReactive(
   ) {
     val = obj[key]
   }
-
+  /*对象的子对象递归进行observe并返回子节点的Observer对象*/
   let childOb = !shallow && observe(val, false, mock)
   Object.defineProperty(obj, key, {
     enumerable: true,
     configurable: true,
     get: function reactiveGetter() {
+      /*如果原本对象拥有getter方法则执行*/
       const value = getter ? getter.call(obj) : val
       if (Dep.target) {
+        /*进行依赖收集*/
         if (__DEV__) {
           dep.depend({
             target: obj,
@@ -167,8 +187,10 @@ export function defineReactive(
           dep.depend()
         }
         if (childOb) {
+          /*子对象进行依赖收集，其实就是将同一个watcher观察者实例放进了两个depend中，一个是正在本身闭包中的depend，另一个是子元素的depend*/
           childOb.dep.depend()
           if (isArray(value)) {
+            /*是数组则需要对每一个成员都进行依赖收集，如果数组的成员还是数组，则递归。*/
             dependArray(value)
           }
         }
@@ -176,6 +198,7 @@ export function defineReactive(
       return isRef(value) && !shallow ? value.value : value
     },
     set: function reactiveSetter(newVal) {
+      /*通过getter方法获取当前值，与新值进行比较，一致则不需要执行下面的操作*/
       const value = getter ? getter.call(obj) : val
       if (!hasChanged(value, newVal)) {
         return
@@ -184,6 +207,7 @@ export function defineReactive(
         customSetter()
       }
       if (setter) {
+        /*如果原本对象拥有setter方法则执行setter*/
         setter.call(obj, newVal)
       } else if (getter) {
         // #7981: for accessor properties without setter
@@ -194,7 +218,9 @@ export function defineReactive(
       } else {
         val = newVal
       }
+      /*新的值需要重新进行observe，保证数据响应式*/
       childOb = !shallow && observe(newVal, false, mock)
+      /*dep对象通知所有的观察者*/
       if (__DEV__) {
         dep.notify({
           type: TriggerOpTypes.SET,

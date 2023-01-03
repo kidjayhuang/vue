@@ -1,3 +1,4 @@
+// 平台的一些模块
 import attrs from './attrs'
 import klass from './class'
 import events from './events'

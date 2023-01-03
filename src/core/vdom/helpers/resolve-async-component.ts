@@ -83,7 +83,7 @@ export function resolveAsyncComponent(
       }
     }
 
-    const resolve = once((res: Object | Component) => {
+    const resolve = once((res: Object | Component) => { // 普通函数异步组件
       // cache resolved
       factory.resolved = ensureCtor(res, baseCtor)
       // invoke callbacks only if this is not a synchronous resolve
@@ -110,12 +110,12 @@ export function resolveAsyncComponent(
     const res = factory(resolve, reject)
 
     if (isObject(res)) {
-      if (isPromise(res)) {
+      if (isPromise(res)) { // Promise 异步组件
         // () => Promise
         if (isUndef(factory.resolved)) {
           res.then(resolve, reject)
         }
-      } else if (isPromise(res.component)) {
+      } else if (isPromise(res.component)) { // 高级异步组件
         res.component.then(resolve, reject)
 
         if (isDef(res.error)) {

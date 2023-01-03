@@ -29,6 +29,7 @@ export function initMixin(Vue: typeof Component) {
 
     // a flag to mark this as a Vue instance without having to do instanceof
     // check
+    /*一个防止vm实例自身被观察的标志位*/
     vm._isVue = true
     // avoid instances from being observed
     vm.__v_skip = true
@@ -56,23 +57,31 @@ export function initMixin(Vue: typeof Component) {
     }
     // expose real self
     vm._self = vm
+    /*初始化生命周期*/
     initLifecycle(vm)
+    /*初始化事件*/
     initEvents(vm)
+    /*初始化render*/
     initRender(vm)
+    /*调用beforeCreate钩子函数并且触发beforeCreate钩子事件*/
     callHook(vm, 'beforeCreate', undefined, false /* setContext */)
     initInjections(vm) // resolve injections before data/props
+    /*初始化props、methods、data、computed与watch*/
     initState(vm)
     initProvide(vm) // resolve provide after data/props
+    /*调用created钩子函数并且触发created钩子事件*/
     callHook(vm, 'created')
 
     /* istanbul ignore if */
     if (__DEV__ && config.performance && mark) {
+      /*格式化组件名*/
       vm._name = formatComponentName(vm, false)
       mark(endTag)
       measure(`vue ${vm._name} init`, startTag, endTag)
     }
 
     if (vm.$options.el) {
+      /*挂载组件*/
       vm.$mount(vm.$options.el)
     }
   }

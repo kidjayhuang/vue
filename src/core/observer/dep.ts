@@ -39,11 +39,11 @@ export default class Dep {
     this.id = uid++
     this.subs = []
   }
-
+  /*添加一个观察者对象*/
   addSub(sub: DepTarget) {
     this.subs.push(sub)
   }
-
+  /*移除一个观察者对象*/
   removeSub(sub: DepTarget) {
     // #12696 deps with massive amount of subscribers are extremely slow to
     // clean up in Chromium
@@ -55,7 +55,7 @@ export default class Dep {
       pendingCleanupDeps.push(this)
     }
   }
-
+  /*依赖收集，当存在Dep.target的时候添加观察者对象*/
   depend(info?: DebuggerEventExtraInfo) {
     if (Dep.target) {
       Dep.target.addDep(this)
@@ -67,7 +67,7 @@ export default class Dep {
       }
     }
   }
-
+  /*通知所有订阅者*/
   notify(info?: DebuggerEventExtraInfo) {
     // stabilize the subscriber list first
     const subs = this.subs.filter(s => s) as DepTarget[]
@@ -94,6 +94,7 @@ export default class Dep {
 // The current target watcher being evaluated.
 // This is globally unique because only one watcher
 // can be evaluated at a time.
+/*依赖收集完需要将Dep.target设为null，防止后面重复添加依赖。*/
 Dep.target = null
 const targetStack: Array<DepTarget | null | undefined> = []
 

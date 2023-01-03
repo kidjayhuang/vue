@@ -123,6 +123,7 @@ export declare class Component {
   _update: (vnode: VNode, hydrating?: boolean) => void
 
   // rendering
+  // 把实例渲染成一个虚拟 Node
   _render: () => VNode
 
   __patch__: (
